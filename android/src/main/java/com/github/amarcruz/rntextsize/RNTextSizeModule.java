@@ -17,9 +17,11 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableType;
 import com.facebook.react.bridge.WritableArray;
+import com.facebook.react.bridge.WritableNativeArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.DisplayMetricsHolder;
 
@@ -121,7 +123,7 @@ class RNTextSizeModule extends ReactContextBaseJavaModule {
                     layout = StaticLayout.Builder.obtain(text, 0, text.length(), textPaint, hintWidth)
                             .setAlignment(Layout.Alignment.ALIGN_NORMAL)
                             .setBreakStrategy(conf.getTextBreakStrategy())
-                            .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NORMAL)
+                            .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
                             .setIncludePad(includeFontPadding)
                             .setLineSpacing(SPACING_ADDITION, SPACING_MULTIPLIER)
                             .build();
@@ -171,6 +173,25 @@ class RNTextSizeModule extends ReactContextBaseJavaModule {
                 info.putDouble("bottom", layout.getLineBottom(line) / density);
                 info.putDouble("width", layout.getLineMax(line) / density);
                 result.putMap("lineInfo", info);
+            }
+
+            Integer forOffset = conf.getIntOrNull("forOffset");
+            if (forOffset != null) {
+                final WritableMap offsetInfo = Arguments.createMap();
+                offsetInfo.putInt("offset", forOffset);
+                offsetInfo.putInt("line", layout.getLineForOffset(forOffset));
+                offsetInfo.putDouble("x", layout.getPrimaryHorizontal(forOffset) / density);
+                offsetInfo.putDouble("x2", layout.getSecondaryHorizontal(forOffset) / density);
+                offsetInfo.putDouble("y", layout.getLineBottom(layout.getLineForOffset(forOffset)) / density);
+                result.putMap("offsetInfo", offsetInfo);
+            }
+
+            if(conf.getBooleanOrTrue("getLineBreaks")) {
+                final WritableArray array = new WritableNativeArray();
+                for (int i = 0; i < lineCount; i++) {                    
+                    array.pushInt(layout.getLineVisibleEnd(i));
+                }                
+                result.putArray("lineBreaks", array);
             }
 
             promise.resolve(result);
